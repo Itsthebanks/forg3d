@@ -497,8 +497,8 @@ const MODEL = 'anthropic/claude-haiku-4-5';
 function getKey() { return localStorage.getItem('forg3d_api_key') || ''; }
 function saveKey() {
   const k = document.getElementById('api-key-input').value.trim();
-  if (!k.startsWith('sk-or-')) {
-    showSetupError('Key should start with sk-or-v1-... Please check and try again.');
+  if (!k || k.length < 10) {
+    showSetupError('Key looks too short — please paste the full key.');
     return;
   }
   localStorage.setItem('forg3d_api_key', k);
