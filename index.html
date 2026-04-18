@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Forg3d — AI 3D Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:ital,wght@0,300;0,400;0,600;0,700;1,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange: #FF6B2B;
+    --bg: #0D0F14;
+    --bg2: #111318;
+    --text: #E8E4DC;
+    --muted: #666;
+    --border: rgba(255,107,43,0.18);
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Barlow', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow-x: hidden; }
+
+/* Grid background */
+body::before {
+content: ‘’;
+position: fixed; inset: 0; z-index: 0; pointer-events: none;
+background-image:
+linear-gradient(rgba(255,107,43,0.04) 1px, transparent 1px),
+linear-gradient(90deg, rgba(255,107,43,0.04) 1px, transparent 1px);
+background-size: 36px 36px;
+}
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pulse { 0%,100% { opacity:.25; transform:scale(.75); } 50% { opacity:1; transform:scale(1); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(–bg); }
+::-webkit-scrollbar-thumb { background: rgba(255,107,43,0.3); border-radius: 2px; }
+
+/* ── HEADER ── */
+#header {
+position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+display: flex; align-items: center; justify-content: space-between;
+padding: 14px 20px;
+background: rgba(13,15,20,0.97);
+border-bottom: 1px solid var(–border);
+backdrop-filter: blur(12px);
+}
+.logo { display: flex; align-items: center; gap: 8px; cursor: pointer; text-decoration: none; }
+.logo-hex { font-size: 22px; color: var(–orange); line-height: 1; }
+.logo-text { font-family: var(–mono); font-size: 18px; letter-spacing: 5px; color: var(–orange); }
+.logo-sub { font-size: 9px; letter-spacing: 2px; color: #444; text-transform: uppercase; }
+.new-btn {
+font-family: var(–mono); font-size: 10px; letter-spacing: 2px;
+color: var(–orange); background: transparent;
+border: 1px solid rgba(255,107,43,0.3);
+padding: 7px 12px; cursor: pointer; display: none;
+}
+.new-btn.visible { display: block; }
+
+/* ── PAGES ── */
+.page {
+position: relative; z-index: 1;
+min-height: 100vh; padding-top: 62px;
+display: none;
+}
+.page.active { display: block; }
+
+/* ── HOME ── */
+#page-home .inner { max-width: 600px; margin: 0 auto; padding: 32px 18px 40px; }
+.hero { margin-bottom: 28px; animation: fadeUp .5s ease both; }
+.hero h1 { font-size: clamp(34px,8vw,58px); font-weight: 700; line-height: 1.06; letter-spacing: -1px; margin-bottom: 14px; }
+.hero h1 em { color: var(–orange); font-style: italic; }
+.hero p { font-size: 14px; color: #777; line-height: 1.7; font-weight: 300; }
+
+.steps { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; animation: fadeUp .5s .06s ease both; }
+.step { display: flex; align-items: center; gap: 6px; }
+.step-num {
+width: 19px; height: 19px; border-radius: 50%;
+background: rgba(255,107,43,0.1); border: 1px solid rgba(255,107,43,0.3);
+color: var(–orange); font-size: 9px; font-family: var(–mono);
+display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.step-label { font-size: 11px; color: #555; }
+.step-arr { color: #222; font-size: 13px; margin-left: 2px; }
+
+.card {
+background: rgba(255,255,255,0.025); border: 1px solid var(–border);
+padding: 22px; margin-bottom: 24px; animation: fadeUp .5s .1s ease both;
+}
+label.field-label {
+display: block; font-family: var(–mono); font-size: 9px;
+letter-spacing: 3px; color: var(–orange); margin-bottom: 9px;
+}
+textarea, input[type=text] {
+width: 100%; background: rgba(255,255,255,0.04);
+border: 1px solid rgba(255,255,255,0.09);
+color: var(–text); padding: 12px; font-size: 15px;
+font-family: var(–sans); resize: vertical; outline: none;
+line-height: 1.6; border-radius: 0;
+-webkit-appearance: none;
+}
+textarea:focus, input:focus { border-color: rgba(255,107,43,0.5); }
+#idea-input { margin-bottom: 20px; }
+
+/* Photo grid */
+.photo-grid { display: flex; gap: 9px; flex-wrap: wrap; margin-bottom: 12px; }
+.photo-slot { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+.photo-slot img { width: 100%; height: 100%; object-fit: cover; border: 1px solid rgba(255,107,43,0.2); display: block; }
+.photo-remove {
+position: absolute; top: 3px; right: 3px;
+background: rgba(0,0,0,0.85); border: none; color: var(–orange);
+width: 18px; height: 18px; font-size: 9px; cursor: pointer;
+display: flex; align-items: center; justify-content: center;
+font-family: var(–mono);
+}
+.photo-num { position: absolute; bottom: 3px; left: 4px; font-family: var(–mono); font-size: 8px; color: rgba(255,107,43,0.5); }
+.photo-add {
+width: 80px; height: 80px; border: 1px dashed rgba(255,107,43,0.22);
+display: flex; flex-direction: column; align-items: center; justify-content: center;
+cursor: pointer; gap: 4px;
+}
+.photo-add span:first-child { font-size: 22px; color: rgba(255,107,43,0.2); }
+.photo-add span:last-child { font-size: 10px; color: #444; text-align: center; line-height: 1.3; }
+
+/* Scale options */
+.scale-row { margin-top: 14px; margin-bottom: 4px; display: none; }
+.scale-row.visible { display: block; }
+.scale-opts { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; }
+.scale-opts label { display: flex; align-items: center; gap: 7px; cursor: pointer; font-size: 13px; color: #888; }
+.scale-opts input[type=radio] { accent-color: var(–orange); }
+
+.btn-primary {
+display: block; width: 100%; background: var(–orange);
+border: none; color: #0D0F14; padding: 15px;
+font-family: var(–mono); font-size: 12px; letter-spacing: 3px;
+cursor: pointer; font-weight: 700; margin-top: 20px;
+opacity: 0.35; transition: opacity .2s;
+}
+.btn-primary.ready { opacity: 1; }
+
+.features { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 12px; animation: fadeUp .5s .15s ease both; }
+.feat { padding: 14px; border: 1px solid rgba(255,255,255,0.045); background: rgba(255,255,255,0.012); display: flex; flex-direction: column; gap: 5px; }
+.feat-icon { font-size: 16px; color: var(–orange); }
+.feat-title { font-size: 11px; letter-spacing: 1px; color: var(–text); font-weight: 600; }
+.feat-desc { font-size: 11px; color: #505050; line-height: 1.5; }
+
+/* ── ENHANCE ── */
+#page-enhance .inner { max-width: 600px; margin: 0 auto; padding: 28px 18px 40px; }
+.step-badge { font-family: var(–mono); font-size: 9px; letter-spacing: 3px; color: var(–orange); display: block; margin-bottom: 10px; }
+.page-title { font-size: 24px; font-weight: 700; color: var(–text); margin-bottom: 7px; }
+.page-sub { font-size: 13px; color: #606060; line-height: 1.7; margin-bottom: 20px; }
+
+.enh-layout { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 20px; }
+.enh-original {
+flex: 0 0 140px; background: rgba(255,255,255,0.02);
+border: 1px solid rgba(255,255,255,0.06); padding: 13px;
+}
+.orig-text { font-size: 12px; color: #666; line-height: 1.7; font-style: italic; margin-top: 4px; }
+.enh-photos { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 9px; }
+.enh-photos img { width: 38px; height: 38px; object-fit: cover; opacity: .5; border: 1px solid rgba(255,107,43,0.1); }
+.enh-arrow { display: flex; align-items: center; padding-top: 28px; color: var(–orange); font-size: 20px; font-family: var(–mono); flex-shrink: 0; }
+.enh-right { flex: 1; min-width: 0; }
+.enh-loading { display: flex; align-items: center; padding: 22px 13px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); min-height: 80px; }
+.enh-loading span { color: #555; font-size: 12px; margin-left: 12px; }
+#enhanced-textarea {
+width: 100%; background: rgba(255,107,43,0.03);
+border: 1px solid rgba(255,107,43,0.2); color: var(–text);
+padding: 13px; font-size: 13px; font-family: var(–sans);
+resize: vertical; outline: none; line-height: 1.8; min-height: 160px;
+}
+.enh-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.btn-ghost {
+background: transparent; border: 1px solid rgba(255,255,255,0.08);
+color: #5a5a5a; padding: 11px 18px; font-family: var(–mono);
+font-size: 10px; letter-spacing: 2px; cursor: pointer;
+}
+
+/* ── CHAT ── */
+#page-chat {
+height: 100vh; display: none; flex-direction: column;
+padding-top: 62px;
+}
+#page-chat.active { display: flex; }
+
+.chat-chip {
+padding: 8px 18px; background: rgba(255,107,43,0.04);
+border-bottom: 1px solid rgba(255,107,43,0.09);
+font-size: 11px; color: #888; flex-shrink: 0;
+line-height: 1.4;
+}
+.chat-chip strong { font-family: var(–mono); font-size: 8px; letter-spacing: 2px; color: var(–orange); display: block; margin-bottom: 2px; }
+
+.chat-scroll { flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 14px; -webkit-overflow-scrolling: touch; }
+
+.bubble { padding: 12px 15px; animation: fadeUp .3s ease both; max-width: 88%; }
+.bubble.user { align-self: flex-end; background: rgba(255,107,43,0.09); border: 1px solid rgba(255,107,43,0.2); }
+.bubble.ai { align-self: flex-start; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.065); }
+.bubble-label { font-family: var(–mono); font-size: 8px; letter-spacing: 3px; margin-bottom: 5px; display: block; }
+.bubble.user .bubble-label { color: var(–orange); }
+.bubble.ai .bubble-label { color: #333; }
+.bubble p { font-size: 13px; line-height: 1.7; color: #C0BCB4; white-space: pre-wrap; }
+
+.code-block { margin: 10px 0; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,107,43,0.15); overflow: hidden; }
+.code-block-label { display: block; font-family: var(–mono); font-size: 8px; letter-spacing: 2px; color: var(–orange); padding: 5px 10px; border-bottom: 1px solid rgba(255,107,43,0.1); }
+.code-block pre { padding: 10px; font-size: 10px; font-family: var(–mono); color: #9CDCFE; overflow-x: auto; line-height: 1.6; max-height: 180px; }
+
+.thinking { display: flex; gap: 5px; align-items: center; padding: 3px 0; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(–orange); animation: pulse 1.2s ease infinite; }
+
+.chat-input-wrap {
+padding: 12px 16px; border-top: 1px solid rgba(255,107,43,0.1);
+background: rgba(13,15,20,0.98); flex-shrink: 0;
+display: flex; gap: 9px; align-items: flex-end;
+padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+#chat-input {
+flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+color: var(–text); padding: 10px 12px; font-size: 14px; font-family: var(–sans);
+resize: none; outline: none; line-height: 1.5; max-height: 120px;
+border-radius: 0; -webkit-appearance: none;
+}
+.chat-btns { display: flex; flex-direction: column; gap: 6px; }
+.btn-send {
+background: var(–orange); border: none; color: #0D0F14;
+padding: 9px 14px; font-family: var(–mono); font-size: 10px;
+letter-spacing: 2px; cursor: pointer; font-weight: 700; white-space: nowrap;
+}
+.btn-gen {
+background: transparent; border: 1px solid rgba(255,107,43,0.3);
+color: var(–orange); padding: 7px 11px; font-family: var(–mono);
+font-size: 9px; letter-spacing: 2px; cursor: pointer; white-space: nowrap; display: none;
+}
+.btn-gen.visible { display: block; }
+
+/* ── CODE PANEL (slides up on mobile) ── */
+#code-panel {
+position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+background: #0a0c10; border-top: 2px solid var(–orange);
+transform: translateY(100%); transition: transform .35s cubic-bezier(.4,0,.2,1);
+max-height: 80vh; display: flex; flex-direction: column;
+}
+#code-panel.open { transform: translateY(0); }
+.panel-header {
+display: flex; justify-content: space-between; align-items: center;
+padding: 12px 16px; border-bottom: 1px solid rgba(255,107,43,0.12); flex-shrink: 0;
+}
+.panel-title { font-family: var(–mono); font-size: 10px; letter-spacing: 2px; color: var(–orange); }
+.panel-btns { display: flex; gap: 8px; }
+.btn-copy, .btn-close {
+background: transparent; border: 1px solid rgba(255,107,43,0.28);
+color: var(–orange); padding: 5px 10px; font-family: var(–mono);
+font-size: 9px; letter-spacing: 2px; cursor: pointer;
+}
+#code-output { flex: 1; overflow-y: auto; padding: 14px; font-family: var(–mono); font-size: 11px; color: #9CDCFE; line-height: 1.7; white-space: pre-wrap; word-break: break-word; }
+
+.code-instructions { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.04); flex-shrink: 0; }
+.code-instructions p { font-family: var(–mono); font-size: 8px; letter-spacing: 3px; color: var(–orange); margin-bottom: 8px; }
+.code-instructions ol { padding-left: 14px; color: #444; font-size: 11px; line-height: 2; }
+
+/* Code available banner */
+#code-banner {
+display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
+background: var(–orange); color: #0D0F14; padding: 14px 20px;
+font-family: var(–mono); font-size: 11px; letter-spacing: 2px;
+text-align: center; cursor: pointer; font-weight: 700;
+padding-bottom: max(14px, env(safe-area-inset-bottom));
+}
+#code-banner.visible { display: block; }
+
+/* ── SETUP / API KEY ── */
+#page-setup .inner { max-width: 500px; margin: 0 auto; padding: 32px 18px; }
+.setup-logo { text-align: center; margin-bottom: 28px; }
+.setup-logo .logo-hex { font-size: 40px; display: block; color: var(–orange); }
+.setup-logo .logo-text { font-family: var(–mono); font-size: 28px; letter-spacing: 6px; color: var(–orange); display: block; margin-top: 6px; }
+.setup-logo p { font-size: 13px; color: #555; margin-top: 10px; line-height: 1.6; }
+.setup-card { background: rgba(255,255,255,0.025); border: 1px solid var(–border); padding: 24px; }
+.setup-card h2 { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+.setup-card p { font-size: 13px; color: #666; margin-bottom: 18px; line-height: 1.6; }
+#api-key-input {
+width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+color: var(–text); padding: 12px; font-size: 13px; font-family: var(–mono);
+outline: none; letter-spacing: 1px; border-radius: 0; margin-bottom: 14px;
+}
+#api-key-input:focus { border-color: rgba(255,107,43,0.5); }
+.setup-note { font-size: 11px; color: #444; line-height: 1.6; margin-top: 14px; }
+.setup-note a { color: rgba(255,107,43,0.6); text-decoration: none; }
+
+/* Error banner */
+.error-banner {
+display: none; background: rgba(255,60,60,0.07); border: 1px solid rgba(255,60,60,0.18);
+color: #c84a4a; padding: 10px 13px; font-size: 12px; line-height: 1.5; margin-bottom: 14px;
+}
+.error-banner.visible { display: block; }
+.warn-banner {
+background: rgba(255,160,0,0.06); border: 1px solid rgba(255,160,0,0.15);
+color: #a8882a; padding: 10px 13px; font-size: 12px; line-height: 1.5; margin-bottom: 14px;
+}
+</style>
+
+</head>
+<body>
+
+<!-- HEADER -->
+
+<div id="header">
+  <a class="logo" onclick="goHome()">
+    <span class="logo-hex">⬡</span>
+    <span class="logo-text">FORG3D</span>
+    <span class="logo-sub">AI 3D Design</span>
+  </a>
+  <button class="new-btn" id="new-btn" onclick="goHome()">+ NEW</button>
+</div>
+
+<!-- PAGE: SETUP (API key) -->
+
+<div class="page active" id="page-setup">
+  <div class="inner">
+    <div class="setup-logo">
+      <span class="logo-hex">⬡</span>
+      <span class="logo-text">FORG3D</span>
+      <p>Your personal AI 3D design assistant.<br>Enter your OpenRouter API key to get started.</p>
+    </div>
+    <div class="setup-card">
+      <h2>Enter your API Key</h2>
+      <p>Your key is stored only in your browser — never sent anywhere except OpenRouter's API.</p>
+      <div class="error-banner" id="setup-error"></div>
+      <label class="field-label">OPENROUTER API KEY</label>
+      <input type="text" id="api-key-input" placeholder="sk-or-v1-..." autocomplete="off" autocorrect="off" spellcheck="false" />
+      <button class="btn-primary ready" onclick="saveKey()">SAVE & START DESIGNING →</button>
+      <p class="setup-note">Get your key at <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a> → Create Key → copy it here.<br><br>To change your key later, tap the ⬡ FORG3D logo and scroll to the bottom of the home screen.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: HOME -->
+
+<div class="page" id="page-home">
+  <div class="inner">
+    <div class="hero">
+      <h1>From idea<br><em>to printable.</em></h1>
+      <p>Describe your idea in plain language. Forg3d enhances it, asks the right questions, then generates OpenSCAD code ready to print.</p>
+    </div>
+
+```
+<div class="steps">
+  <div class="step"><span class="step-num">1</span><span class="step-label">Describe idea</span></div>
+  <span class="step-arr">→</span>
+  <div class="step"><span class="step-num">2</span><span class="step-label">Forg3d enhances</span></div>
+  <span class="step-arr">→</span>
+  <div class="step"><span class="step-num">3</span><span class="step-label">Answer questions</span></div>
+  <span class="step-arr">→</span>
+  <div class="step"><span class="step-num">4</span><span class="step-label">Get OpenSCAD</span></div>
+</div>
+
+<div class="card">
+  <label class="field-label">DESCRIBE YOUR IDEA</label>
+  <textarea id="idea-input" rows="4" placeholder="e.g. I want a case that fits my sharpener system, attaching photos for reference..." oninput="checkReady()"></textarea>
+
+  <label class="field-label">REFERENCE PHOTOS <span style="color:#484848;letter-spacing:1px">— up to 4, multiple angles recommended</span></label>
+  <div class="photo-grid" id="photo-grid">
+    <div class="photo-add" onclick="document.getElementById('photo-input').click()">
+      <span>⊕</span><span>Add photo</span>
+    </div>
+  </div>
+  <input type="file" id="photo-input" accept="image/*" multiple style="display:none" onchange="handlePhotos(event)">
+
+  <div class="scale-row" id="scale-row">
+    <label class="field-label">SCALE REFERENCE IN PHOTOS</label>
+    <div class="scale-opts">
+      <label><input type="radio" name="scale" value="quarter" checked> 🪙 US Quarter (24.26mm)</label>
+      <label><input type="radio" name="scale" value="ruler"> 📏 Ruler / Tape measure</label>
+      <label><input type="radio" name="scale" value="other"> 📦 Other object</label>
+      <label><input type="radio" name="scale" value="none"> ⬜ No scale reference</label>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="start-btn" onclick="startEnhance()">ENHANCE & BEGIN →</button>
+</div>
+
+<div class="features">
+  <div class="feat"><span class="feat-icon">✦</span><strong class="feat-title">Prompt Enhancer</strong><span class="feat-desc">Rewrites your rough idea into precise design language</span></div>
+  <div class="feat"><span class="feat-icon">◈</span><strong class="feat-title">Multi-Photo Reference</strong><span class="feat-desc">Up to 4 angles — reads scale references for real dimensions</span></div>
+  <div class="feat"><span class="feat-icon">⌘</span><strong class="feat-title">OpenSCAD Output</strong><span class="feat-desc">Parametric code with named variables, export as STL</span></div>
+</div>
+
+<div style="margin-top:32px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.05)">
+  <p style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:#333;margin-bottom:10px">API KEY</p>
+  <button class="btn-ghost" onclick="clearKey()" style="font-size:10px">CHANGE API KEY</button>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- PAGE: ENHANCE -->
+
+<div class="page" id="page-enhance">
+  <div class="inner">
+    <span class="step-badge">STEP 1 OF 3 — PROMPT ENHANCER</span>
+    <h2 class="page-title">Forg3d rewrote your idea</h2>
+    <p class="page-sub">Review the enhanced brief. Edit anything that feels off — this is what Forg3d designs from.</p>
+
+```
+<div class="warn-banner" id="enhance-warn" style="display:none"></div>
+
+<div class="enh-layout">
+  <div class="enh-original">
+    <label class="field-label">YOUR WORDS</label>
+    <p class="orig-text" id="orig-text-display"></p>
+    <div class="enh-photos" id="enh-photos"></div>
+  </div>
+  <div class="enh-arrow" id="enh-arrow">→</div>
+  <div class="enh-right">
+    <label class="field-label">ENHANCED BRIEF <span style="color:#505050" id="edit-hint">— EDIT IF NEEDED</span></label>
+    <div class="enh-loading" id="enh-loading">
+      <div class="thinking">
+        <span class="dot" style="animation-delay:0s"></span>
+        <span class="dot" style="animation-delay:.2s"></span>
+        <span class="dot" style="animation-delay:.4s"></span>
+      </div>
+      <span>Analyzing and enhancing...</span>
+    </div>
+    <textarea id="enhanced-textarea" style="display:none" rows="8"></textarea>
+  </div>
+</div>
+
+<div class="enh-actions" id="enh-actions" style="display:none">
+  <button class="btn-primary ready" style="max-width:340px;margin-top:0" onclick="proceedToClarify()">LOOKS GOOD — START DESIGNING →</button>
+  <button class="btn-ghost" onclick="showPage('page-home')">← BACK</button>
+</div>
+```
+
+  </div>
+</div>
+
+<!-- PAGE: CHAT -->
+
+<div class="page" id="page-chat">
+  <div class="chat-chip">
+    <strong id="chat-step-label">STEP 2 OF 3 — CLARIFYING:</strong>
+    <span id="chat-chip-text"></span>
+  </div>
+  <div class="chat-scroll" id="chat-scroll">
+    <!-- messages injected here -->
+  </div>
+  <div class="chat-input-wrap">
+    <textarea id="chat-input" rows="2" placeholder="Answer the questions above..." onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+    <div class="chat-btns">
+      <button class="btn-send" id="btn-send" onclick="sendReply()">SEND →</button>
+      <button class="btn-gen" id="btn-gen" onclick="generateNow()">GENERATE NOW</button>
+    </div>
+  </div>
+</div>
+
+<!-- CODE PANEL (slides up) -->
+
+<div id="code-panel">
+  <div class="panel-header">
+    <span class="panel-title">⌘ OPENSCAD CODE</span>
+    <div class="panel-btns">
+      <button class="btn-copy" onclick="copyCode()">COPY</button>
+      <button class="btn-close" onclick="closeCodePanel()">CLOSE ✕</button>
+    </div>
+  </div>
+  <div id="code-output"></div>
+  <div class="code-instructions">
+    <p>TO USE THIS CODE:</p>
+    <ol>
+      <li>Download <strong>OpenSCAD</strong> free at openscad.org</li>
+      <li>Paste this code into the editor</li>
+      <li>Press <strong>F5</strong> to preview, <strong>F6</strong> to render</li>
+      <li>File → Export → Export as STL</li>
+    </ol>
+  </div>
+</div>
+
+<!-- Code ready banner -->
+
+<div id="code-banner" onclick="openCodePanel()">⌘ OPENSCAD CODE READY — TAP TO VIEW</div>
+
+<script>
+// ── STATE ──
+let photos = [];         // [{url, base64}]
+let enhancedBrief = '';
+let chatHistory = [];    // text-only [{role, content}]
+let openscadCode = '';
+let currentPhase = 'clarify'; // clarify | result
+
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const MODEL = 'anthropic/claude-haiku-4-5';
+
+// ── API KEY ──
+function getKey() { return localStorage.getItem('forg3d_api_key') || ''; }
+function saveKey() {
+  const k = document.getElementById('api-key-input').value.trim();
+  if (!k.startsWith('sk-or-')) {
+    showSetupError('Key should start with sk-or-v1-... Please check and try again.');
+    return;
+  }
+  localStorage.setItem('forg3d_api_key', k);
+  showPage('page-home');
+}
+function clearKey() { localStorage.removeItem('forg3d_api_key'); showPage('page-setup'); }
+function showSetupError(msg) {
+  const el = document.getElementById('setup-error');
+  el.textContent = msg; el.classList.add('visible');
+}
+
+// ── ROUTING ──
+function init() {
+  if (getKey()) showPage('page-home');
+  else showPage('page-setup');
+}
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.getElementById('new-btn').classList.toggle('visible', id !== 'page-home' && id !== 'page-setup');
+  window.scrollTo(0,0);
+}
+
+function goHome() {
+  photos = []; enhancedBrief = ''; chatHistory = []; openscadCode = '';
+  document.getElementById('idea-input').value = '';
+  renderPhotoGrid();
+  document.getElementById('scale-row').classList.remove('visible');
+  document.getElementById('chat-scroll').innerHTML = '';
+  closeCodePanel();
+  document.getElementById('code-banner').classList.remove('visible');
+  showPage('page-home');
+}
+
+// ── PHOTOS ──
+function handlePhotos(e) {
+  const files = Array.from(e.target.files).slice(0, 4 - photos.length);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const b64 = ev.target.result.split(',')[1];
+      if (photos.length < 4) {
+        photos.push({ url: URL.createObjectURL(file), base64: b64 });
+        renderPhotoGrid();
+        document.getElementById('scale-row').classList.toggle('visible', photos.length > 0);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+}
+
+function removePhoto(idx) {
+  photos.splice(idx, 1);
+  renderPhotoGrid();
+  document.getElementById('scale-row').classList.toggle('visible', photos.length > 0);
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photo-grid');
+  grid.innerHTML = '';
+  photos.forEach((p, i) => {
+    const slot = document.createElement('div');
+    slot.className = 'photo-slot';
+    slot.innerHTML = `<img src="${p.url}"><button class="photo-remove" onclick="removePhoto(${i})">✕</button><span class="photo-num">#${i+1}</span>`;
+    grid.appendChild(slot);
+  });
+  if (photos.length < 4) {
+    const add = document.createElement('div');
+    add.className = 'photo-add';
+    add.onclick = () => document.getElementById('photo-input').click();
+    add.innerHTML = `<span>⊕</span><span>${photos.length === 0 ? 'Add photo' : 'Add another'}</span>`;
+    grid.appendChild(add);
+  }
+}
+
+function checkReady() {
+  const ready = document.getElementById('idea-input').value.trim().length > 0;
+  document.getElementById('start-btn').classList.toggle('ready', ready);
+}
+
+// ── OPENROUTER API ──
+async function callAI(messages, systemPrompt, imageContent = null) {
+  const key = getKey();
+  if (!key) { clearKey(); throw new Error('No API key'); }
+
+  // Build the user message
+  let userMessage;
+  if (imageContent && imageContent.length > 0) {
+    // Vision message with images
+    userMessage = { role: 'user', content: imageContent };
+  } else {
+    userMessage = messages[messages.length - 1];
+  }
+
+  const payload = {
+    model: MODEL,
+    max_tokens: 1200,
+    messages: imageContent
+      ? [{ role: 'system', content: systemPrompt }, userMessage]
+      : [{ role: 'system', content: systemPrompt }, ...messages],
+  };
+
+  const res = await fetch(OPENROUTER_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${key}`,
+      'HTTP-Referer': window.location.href,
+      'X-Title': 'Forg3d',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error?.message || `HTTP ${res.status}`);
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (!text) throw new Error('Empty response');
+  return text;
+}
+
+// Build vision content for enhance step
+function buildVisionContent(textPrompt) {
+  if (photos.length === 0) return null;
+  const scaleVal = document.querySelector('input[name=scale]:checked')?.value || 'quarter';
+  const scaleNote = scaleVal === 'quarter' ? 'US quarter coin (24.26mm diameter)'
+    : scaleVal === 'ruler' ? 'ruler or tape measure'
+    : scaleVal === 'none' ? 'no scale reference'
+    : 'a common object for scale';
+
+  const content = [];
+  photos.forEach((p, i) => {
+    content.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${p.base64}` } });
+    content.push({ type: 'text', text: `[Photo ${i+1} of ${photos.length}${i===0 ? ` — scale reference in photo: ${scaleNote}` : ' — additional angle'}]` });
+  });
+  content.push({ type: 'text', text: textPrompt });
+  return content;
+}
+
+// ── ENHANCE ──
+async function startEnhance() {
+  const idea = document.getElementById('idea-input').value.trim();
+  if (!idea) return;
+
+  showPage('page-enhance');
+  document.getElementById('orig-text-display').textContent = idea;
+
+  // Show photo thumbnails
+  const enhPhotos = document.getElementById('enh-photos');
+  enhPhotos.innerHTML = photos.map(p => `<img src="${p.url}">`).join('');
+
+  document.getElementById('enh-loading').style.display = 'flex';
+  document.getElementById('enhanced-textarea').style.display = 'none';
+  document.getElementById('enh-actions').style.display = 'none';
+  document.getElementById('enhance-warn').style.display = 'none';
+  document.getElementById('edit-hint').style.display = '';
+
+  const scaleVal = document.querySelector('input[name=scale]:checked')?.value || 'quarter';
+  const scaleNote = scaleVal === 'quarter' ? 'A US quarter (24.26mm diameter) is visible for scale.'
+    : scaleVal === 'ruler' ? 'A ruler or tape measure is visible for scale.'
+    : scaleVal === 'none' ? 'No scale reference is included.'
+    : 'A common object is included for scale.';
+
+  const prompt = photos.length > 0
+    ? `User's rough description: "${idea}"\n\n${scaleNote}\n\nAnalyze the photo(s) carefully. Incorporate visible shapes, components, and estimated dimensions into the enhanced brief.`
+    : `User's rough description: "${idea}"`;
+
+  const ENHANCE_SYS = `You are Forg3d, an expert 3D design AI. Rewrite the user's rough description into a precise, professional design brief for OpenSCAD generation.
+
+The enhanced brief should:
+- Incorporate any visible details from photos (shapes, components, approximate dimensions)
+- Estimate dimensions using scale references (US quarter = 24.26mm diameter)
+- Expand vague terms into specific design language
+- Flag missing critical dimensions with placeholders like [HEIGHT: to be clarified]
+- Mention print considerations: layer orientation, support needs, wall thickness
+- Include detail level and any hardware (screws, inserts, etc.)
+- Be 4-7 sentences, dense with useful design intent
+
+Return ONLY the enhanced brief. No preamble, no labels, no markdown.`;
+
+  try {
+    const visionContent = buildVisionContent(prompt);
+    const enhanced = await callAI([{ role: 'user', content: prompt }], ENHANCE_SYS, visionContent);
+    enhancedBrief = enhanced;
+    document.getElementById('enhanced-textarea').value = enhanced;
+    document.getElementById('enh-loading').style.display = 'none';
+    document.getElementById('enhanced-textarea').style.display = 'block';
+    document.getElementById('enh-actions').style.display = 'flex';
+  } catch (err) {
+    // Fallback
+    const scaleRef = photos.length > 0 ? ` Scale reference: ${scaleNote}` : '';
+    enhancedBrief = `A 3D-printable design based on: "${idea}"${scaleRef} Key dimensions are [TO BE CLARIFIED during design session]. Designed for FDM printing with minimum wall thickness 2.4mm, layer height 0.2mm, infill 20–40% based on structural requirements. All critical interfaces include appropriate tolerances (±0.2mm). Closure/mounting method to be determined. Design prioritizes minimal support material and clean fitment.`;
+    document.getElementById('enhanced-textarea').value = enhancedBrief;
+    document.getElementById('enh-loading').style.display = 'none';
+    document.getElementById('enhanced-textarea').style.display = 'block';
+    document.getElementById('enh-actions').style.display = 'flex';
+    const warn = document.getElementById('enhance-warn');
+    warn.textContent = `⚠ AI enhancement unavailable (${err.message}). A baseline brief was generated — edit it freely.`;
+    warn.style.display = 'block';
+  }
+}
+
+// ── CLARIFY ──
+async function proceedToClarify() {
+  enhancedBrief = document.getElementById('enhanced-textarea').value.trim();
+  currentPhase = 'clarify';
+
+  document.getElementById('chat-chip-text').textContent = enhancedBrief.slice(0, 90) + (enhancedBrief.length > 90 ? '…' : '') + (photos.length > 0 ? ` 📷×${photos.length}` : '');
+  document.getElementById('chat-step-label').textContent = 'STEP 2 OF 3 — CLARIFYING:';
+  document.getElementById('chat-scroll').innerHTML = '';
+  document.getElementById('chat-input').placeholder = 'Answer the questions above...';
+  document.getElementById('btn-gen').classList.add('visible');
+  showPage('page-chat');
+
+  const userMsg = `Design brief:\n\n${enhancedBrief}`;
+  chatHistory = [{ role: 'user', content: userMsg }];
+  addBubble('user', enhancedBrief);
+  showThinking();
+
+  const CLARIFY_SYS = `You are Forg3d, an expert 3D design AI and OpenSCAD specialist. The user has provided a refined design brief. Ask 3-5 smart clarifying questions to gather the remaining information needed for precise OpenSCAD code. Focus only on truly missing details: key dimensions, functional requirements, closure/mounting method, material. Be conversational, friendly, and number your questions.`;
+
+  try {
+    const reply = await callAI(chatHistory, CLARIFY_SYS);
+    chatHistory.push({ role: 'assistant', content: reply });
+    hideThinking();
+    addBubble('ai', reply);
+  } catch (err) {
+    hideThinking();
+    const msg = `Couldn't connect (${err.message}). Try pressing "Generate Now" or check your API key.`;
+    addBubble('ai', msg);
+  }
+}
+
+// ── SEND REPLY ──
+async function sendReply() {
+  const input = document.getElementById('chat-input').value.trim();
+  if (!input) return;
+  document.getElementById('chat-input').value = '';
+  autoResize(document.getElementById('chat-input'));
+
+  chatHistory.push({ role: 'user', content: input });
+  addBubble('user', input);
+  showThinking();
+
+  const GEN_SYS = `You are Forg3d, an expert 3D design AI and OpenSCAD specialist. Based on the design brief and answers provided, generate complete working OpenSCAD code.
+
+Requirements:
+- Named variables at the top for ALL key dimensions
+- Clear comments explaining each section  
+- FDM printability: walls ≥2.4mm, minimal overhangs, fillets on stress points
+- Clean module structure
+- Note any assumed dimensions in comments
+
+Wrap code in triple backticks with openscad tag. After the code, list 3 specific refinements the user might want.`;
+
+  try {
+    const reply = await callAI(chatHistory, GEN_SYS);
+    chatHistory.push({ role: 'assistant', content: reply });
+    hideThinking();
+
+    const code = extractCode(reply);
+    if (code) {
+      openscadCode = code;
+      setResultPhase();
+    }
+    addBubble('ai', reply);
+  } catch (err) {
+    hideThinking();
+    addBubble('ai', `Error: ${err.message}`);
+  }
+}
+
+async function generateNow() {
+  const genMsg = 'Please generate the OpenSCAD code now based on everything discussed. Make reasonable assumptions for anything unclear and note them in code comments.';
+  chatHistory.push({ role: 'user', content: genMsg });
+  addBubble('user', genMsg);
+  showThinking();
+
+  const GEN_SYS = `You are Forg3d, an expert 3D design AI and OpenSCAD specialist. Generate complete working OpenSCAD code based on the design brief. Use named variables, clear comments, FDM-printable design, and clean module structure. Note assumed dimensions in comments. Wrap code in triple backticks with openscad tag. After code, list 3 refinements the user might want.`;
+
+  try {
+    const reply = await callAI(chatHistory, GEN_SYS);
+    chatHistory.push({ role: 'assistant', content: reply });
+    hideThinking();
+    const code = extractCode(reply);
+    if (code) { openscadCode = code; setResultPhase(); }
+    addBubble('ai', reply);
+  } catch (err) {
+    hideThinking();
+    addBubble('ai', `Error: ${err.message}`);
+  }
+}
+
+// ── REFINE ──
+async function sendReply() {
+  const input = document.getElementById('chat-input').value.trim();
+  if (!input) return;
+  document.getElementById('chat-input').value = '';
+  autoResize(document.getElementById('chat-input'));
+
+  if (currentPhase === 'result') {
+    const refineMsg = `Current OpenSCAD code:\n\`\`\`openscad\n${openscadCode}\n\`\`\`\n\nPlease make this change: ${input}`;
+    chatHistory.push({ role: 'user', content: refineMsg });
+    addBubble('user', input);
+  } else {
+    chatHistory.push({ role: 'user', content: input });
+    addBubble('user', input);
+  }
+  showThinking();
+
+  const SYS = currentPhase === 'result'
+    ? `You are Forg3d, an expert OpenSCAD specialist. Apply the requested refinement to the provided code. Return the complete updated code in triple backticks with openscad tag. Explain what changed in 1-2 sentences, then offer 3 further refinements.`
+    : `You are Forg3d, an expert 3D design AI and OpenSCAD specialist. Based on the design brief and answers, generate complete working OpenSCAD code with named variables, comments, FDM-printable design, and clean module structure. Wrap code in triple backticks with openscad tag. List 3 refinements after.`;
+
+  try {
+    const reply = await callAI(chatHistory, SYS);
+    chatHistory.push({ role: 'assistant', content: reply });
+    hideThinking();
+    const code = extractCode(reply);
+    if (code) { openscadCode = code; setResultPhase(); }
+    addBubble('ai', reply);
+  } catch (err) {
+    hideThinking();
+    addBubble('ai', `Error: ${err.message}`);
+  }
+}
+
+// ── RESULT PHASE ──
+function setResultPhase() {
+  currentPhase = 'result';
+  document.getElementById('chat-step-label').textContent = '✓ DESIGNING:';
+  document.getElementById('chat-input').placeholder = 'Request a refinement or tweak...';
+  document.getElementById('btn-gen').classList.remove('visible');
+  document.getElementById('code-output').textContent = openscadCode;
+  document.getElementById('code-banner').classList.add('visible');
+}
+
+function openCodePanel() {
+  document.getElementById('code-panel').classList.add('open');
+  document.getElementById('code-banner').classList.remove('visible');
+}
+function closeCodePanel() {
+  document.getElementById('code-panel').classList.remove('open');
+  if (openscadCode) document.getElementById('code-banner').classList.add('visible');
+}
+function copyCode() {
+  navigator.clipboard.writeText(openscadCode).then(() => {
+    const btn = document.querySelector('.btn-copy');
+    btn.textContent = '✓ COPIED';
+    setTimeout(() => btn.textContent = 'COPY', 2000);
+  });
+}
+
+// ── CHAT UI HELPERS ──
+function addBubble(role, text) {
+  const scroll = document.getElementById('chat-scroll');
+  const div = document.createElement('div');
+  div.className = `bubble ${role}`;
+
+  const label = document.createElement('span');
+  label.className = 'bubble-label';
+  label.textContent = role === 'user' ? 'YOU' : '⬡ FORG3D';
+  div.appendChild(label);
+
+  // Parse code blocks
+  const parts = text.split(/(```openscad\n?[\s\S]*?```)/gi);
+  parts.forEach(part => {
+    if (/^```openscad/i.test(part)) {
+      const code = part.replace(/```openscad\n?/i,'').replace(/```$/,'').trim();
+      const block = document.createElement('div');
+      block.className = 'code-block';
+      block.innerHTML = `<span class="code-block-label">OpenSCAD Generated</span><pre>${escHtml(code)}</pre>`;
+
+```
+  div.appendChild(block);
+} else if (part.trim()) {
+  const p = document.createElement('p');
+  p.textContent = part;
+  div.appendChild(p);
+}
+```
+
+});
+
+scroll.appendChild(div);
+scroll.scrollTop = scroll.scrollHeight;
+}
+
+let thinkingEl = null;
+function showThinking() {
+const scroll = document.getElementById(‘chat-scroll’);
+thinkingEl = document.createElement(‘div’);
+thinkingEl.className = ‘bubble ai’;
+thinkingEl.innerHTML = `<span class="bubble-label">⬡ FORG3D</span><div class="thinking"><span class="dot" style="animation-delay:0s"></span><span class="dot" style="animation-delay:.2s"></span><span class="dot" style="animation-delay:.4s"></span></div>`;
+scroll.appendChild(thinkingEl);
+scroll.scrollTop = scroll.scrollHeight;
+}
+function hideThinking() {
+if (thinkingEl) { thinkingEl.remove(); thinkingEl = null; }
+}
+
+function extractCode(text) {
+const m = text.match(/`openscad\n?([\s\S]*?)`/i);
+return m ? m[1].trim() : null;
+}
+function escHtml(t) { return t.replace(/&/g,’&’).replace(/</g,’<’).replace(/>/g,’>’); }
+
+function handleChatKey(e) {
+if (e.key === ‘Enter’ && !e.shiftKey) { e.preventDefault(); sendReply(); }
+}
+function autoResize(el) {
+el.style.height = ‘auto’;
+el.style.height = Math.min(el.scrollHeight, 120) + ‘px’;
+}
+
+// ── INIT ──
+init();
+</script>
+
+</body>
+</html>
