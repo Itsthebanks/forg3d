@@ -352,7 +352,7 @@ var currentPhase = 'clarify';
 var isLoading = false;
 
 var OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-var SESSION_KEY = ''; // in-memory fallback for Safari
+var SESSION_KEY = 'sk-or-v1-657fe90eaa9e65-ca289ad4ed8711e34e0760aa2f65b4b088cb4a262d70abb22f';
 var MODEL = 'anthropic/claude-haiku-4-5';
 
 // ── KEY MANAGEMENT ──
@@ -383,16 +383,8 @@ function clearKey() {
 
 // ── ROUTING ──
 function init() {
-  // Pre-load key from localStorage into memory on startup
-  try {
-    var stored = localStorage.getItem('forg3d_key');
-    if (stored) SESSION_KEY = stored;
-  } catch(e) {}
-  if (getKey()) {
-    showPage('page-home');
-  } else {
-    showPage('page-setup');
-  }
+  // Key is hardcoded — go straight to home every time
+  showPage('page-home');
 }
 
 function showPage(id) {
